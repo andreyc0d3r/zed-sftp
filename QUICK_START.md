@@ -13,13 +13,17 @@ Get SFTP working in Zed in 5 minutes!
 
 ### Option B: As Dev Extension (for now)
 
+**Prerequisites:**
+- Rust: `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+- Node.js: `brew install node` or from [nodejs.org](https://nodejs.org/)
+
 ```bash
 # Clone the repository
 git clone https://github.com/andreyc0d3r/zed-sftp
 cd zed-sftp
 
-# Build the extension
-./build.sh
+# Run setup (checks dependencies and builds everything)
+./setup.sh
 
 # Install in Zed:
 # 1. Open Zed

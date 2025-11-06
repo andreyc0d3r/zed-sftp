@@ -25,8 +25,18 @@ The language server is written in Node.js/TypeScript and uses the `ssh2-sftp-cli
 
 ### Prerequisites
 
-1. **Node.js** - Required for the language server (v18 or later)
-2. **Zed Editor** - Latest version recommended
+1. **Rust** - Required to compile the extension
+   ```bash
+   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+   ```
+
+2. **Node.js** - Required for the language server (v18 or later)
+   ```bash
+   brew install node  # macOS
+   # Or download from https://nodejs.org/
+   ```
+
+3. **Zed Editor** - Latest version recommended
 
 ### Install Extension
 
@@ -38,10 +48,17 @@ The language server is written in Node.js/TypeScript and uses the `ssh2-sftp-cli
 Or install as dev extension:
 
 ```bash
+# Clone the repository
 git clone https://github.com/andreyc0d3r/zed-sftp
 cd zed-sftp
-# Install server dependencies
+
+# Run setup script (checks dependencies and builds)
+./setup.sh
+
+# Or build manually:
 cd server && npm install && npm run build && cd ..
+cargo build --release
+
 # Install in Zed: Extensions > Install Dev Extension > Select this directory
 ```
 
