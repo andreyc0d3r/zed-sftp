@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "SFTP Language Server for Zed",
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "watch": "tsc --watch",
-    "prepare": "npm run build"
+    "prepack": "npm run build"
   },
   "keywords": [
     "zed",
@@ -14,7 +17,7 @@
     "language-server",
     "lsp"
   ],
-  "author": "",
+  "author": "andreyc0d3r",
   "license": "MIT",
   "dependencies": {
     "ssh2-sftp-client": "^11.0.0",
@@ -29,4 +32,3 @@
     "typescript": "^5.7.2"
   }
 }
-
