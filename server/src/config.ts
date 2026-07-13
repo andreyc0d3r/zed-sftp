@@ -4,7 +4,7 @@ import { minimatch } from "minimatch";
 
 export interface SftpConfig {
 	name?: string;
-	protocol: "sftp" | "ftp" | "ftps";
+	protocol?: "sftp" | "ftp" | "ftps";
 	host: string;
 	port?: number;
 	username: string;
@@ -38,6 +38,115 @@ export interface SftpConfig {
 	defaultProfile?: string;
 }
 
+function stripJsonComments(content: string): string {
+	let result = "";
+	let inString = false;
+	let escaped = false;
+
+	for (let index = 0; index < content.length; index += 1) {
+		const character = content[index];
+		const nextCharacter = content[index + 1];
+
+		if (inString) {
+			result += character;
+			if (escaped) {
+				escaped = false;
+			} else if (character === "\\") {
+				escaped = true;
+			} else if (character === '"') {
+				inString = false;
+			}
+			continue;
+		}
+
+		if (character === '"') {
+			inString = true;
+			result += character;
+			continue;
+		}
+
+		if (character === "/" && nextCharacter === "/") {
+			result += "  ";
+			index += 2;
+			while (index < content.length && content[index] !== "\n" && content[index] !== "\r") {
+				result += " ";
+				index += 1;
+			}
+			if (index < content.length) {
+				result += content[index];
+			}
+			continue;
+		}
+
+		if (character === "/" && nextCharacter === "*") {
+			result += "  ";
+			index += 2;
+			while (index < content.length) {
+				if (content[index] === "*" && content[index + 1] === "/") {
+					result += "  ";
+					index += 1;
+					break;
+				}
+				result += content[index] === "\n" || content[index] === "\r" ? content[index] : " ";
+				index += 1;
+			}
+			continue;
+		}
+
+		result += character;
+	}
+
+	return result;
+}
+
+function stripTrailingCommas(content: string): string {
+	let result = "";
+	let inString = false;
+	let escaped = false;
+
+	for (let index = 0; index < content.length; index += 1) {
+		const character = content[index];
+
+		if (inString) {
+			result += character;
+			if (escaped) {
+				escaped = false;
+			} else if (character === "\\") {
+				escaped = true;
+			} else if (character === '"') {
+				inString = false;
+			}
+			continue;
+		}
+
+		if (character === '"') {
+			inString = true;
+			result += character;
+			continue;
+		}
+
+		if (character === ",") {
+			let lookahead = index + 1;
+			while (lookahead < content.length && /\s/.test(content[lookahead])) {
+				lookahead += 1;
+			}
+
+			if (content[lookahead] === "}" || content[lookahead] === "]") {
+				result += " ";
+				continue;
+			}
+		}
+
+		result += character;
+	}
+
+	return result;
+}
+
+export function parseJsonc(content: string): unknown {
+	return JSON.parse(stripTrailingCommas(stripJsonComments(content)));
+}
+
 export class ConfigManager {
 	private workspaceFolder: string;
 	private config: SftpConfig | null = null;
@@ -68,11 +177,19 @@ export class ConfigManager {
 
 		try {
 			const configContent = fs.readFileSync(configPath, "utf-8");
-			this.config = JSON.parse(configContent);
+			this.config = parseJsonc(configContent) as SftpConfig;
 
-			// Validate required fields
 			if (!this.config) {
 				throw new Error("Config is empty");
+			}
+
+			// Profiles override base values before validation so connection fields may live in a profile.
+			if (this.config.profiles && this.config.defaultProfile) {
+				const profile = this.config.profiles[this.config.defaultProfile];
+				if (!profile) {
+					throw new Error(`Unknown defaultProfile: ${this.config.defaultProfile}`);
+				}
+				this.config = { ...this.config, ...profile };
 			}
 
 			if (!this.config.host) {
@@ -91,52 +208,59 @@ export class ConfigManager {
 				throw new Error("Either password or privateKeyPath must be provided");
 			}
 
-			if (this.config) {
-				// Set default local path
-				if (!this.config.localPath) {
-					this.config.localPath = this.workspaceFolder;
-				}
+			this.config.protocol ??= "sftp";
 
-				// Handle context path (local subdirectory to use as root)
-				if (this.config.context) {
-					// Normalize context path (remove leading/trailing slashes)
-					let context = this.config.context.replace(/^\/+|\/+$/g, "");
-					this.contextPath = path.join(this.workspaceFolder, context);
-				} else {
-					this.contextPath = this.workspaceFolder;
-				}
+			// Set default local path
+			if (!this.config.localPath) {
+				this.config.localPath = this.workspaceFolder;
+			}
 
-				// Load ignore patterns
-				this.ignorePatterns = this.config.ignore || [];
+			// Handle context path (local subdirectory to use as root)
+			if (this.config.context) {
+				const context = this.config.context.replace(/^\/+|\/+$/g, "");
+				this.contextPath = path.join(this.workspaceFolder, context);
+			} else {
+				this.contextPath = this.workspaceFolder;
+			}
 
-				// Add default ignore patterns
-				if (!this.ignorePatterns.includes(".git")) {
-					this.ignorePatterns.push(".git");
-				}
-				if (!this.ignorePatterns.includes("node_modules")) {
-					this.ignorePatterns.push("node_modules");
-				}
+			// Copy ignore patterns so defaults do not mutate the loaded configuration.
+			this.ignorePatterns = [...(this.config.ignore || [])];
 
-				// Handle profiles
-				if (this.config.profiles && this.config.defaultProfile) {
-					const profile = this.config.profiles[this.config.defaultProfile];
-					if (profile) {
-						this.config = { ...this.config, ...profile };
-					}
-				}
+			// Add default ignore patterns
+			if (!this.ignorePatterns.includes(".git")) {
+				this.ignorePatterns.push(".git");
+			}
+			if (!this.ignorePatterns.includes("node_modules")) {
+				this.ignorePatterns.push("node_modules");
+			}
+
+			const relativeConfigPath = path.relative(this.workspaceFolder, configPath).split(path.sep).join("/");
+			if (!this.ignorePatterns.includes(relativeConfigPath)) {
+				this.ignorePatterns.push(relativeConfigPath);
 			}
 
 			return this.config;
 		} catch (error) {
-			throw new Error(`Failed to parse SFTP config: ${error}`);
+			throw new Error(`Failed to load SFTP config: ${error}`);
 		}
 	}
 
 	shouldIgnore(filePath: string): boolean {
-		const relativePath = path.relative(this.workspaceFolder, filePath);
+		const relativePath = path.relative(this.workspaceFolder, filePath).split(path.sep).join("/");
 
 		for (const pattern of this.ignorePatterns) {
-			if (minimatch(relativePath, pattern, { dot: true })) {
+			const normalizedPattern = pattern.split(path.sep).join("/").replace(/\/+$/, "");
+			if (!normalizedPattern) {
+				continue;
+			}
+
+			const matchesPattern = minimatch(relativePath, normalizedPattern, { dot: true });
+			const matchesDirectoryContents = minimatch(relativePath, `${normalizedPattern}/**`, { dot: true });
+			const matchesNestedDirectory =
+				!normalizedPattern.includes("/") &&
+				minimatch(relativePath, `**/${normalizedPattern}/**`, { dot: true });
+
+			if (matchesPattern || matchesDirectoryContents || matchesNestedDirectory) {
 				return true;
 			}
 		}
@@ -148,9 +272,11 @@ export class ConfigManager {
 	 * Check if a file is within the context path
 	 */
 	isInContext(filePath: string): boolean {
-		const normalized = path.normalize(filePath);
-		const contextNormalized = path.normalize(this.contextPath);
-		return normalized.startsWith(contextNormalized);
+		const relativePath = path.relative(this.contextPath, path.resolve(filePath));
+		return (
+			relativePath === "" ||
+			(relativePath !== ".." && !relativePath.startsWith(`..${path.sep}`) && !path.isAbsolute(relativePath))
+		);
 	}
 
 	/**
@@ -169,11 +295,6 @@ export class ConfigManager {
 		// Get relative path from context directory
 		const relativePath = path.relative(this.contextPath, localFilePath);
 
-		// Security check: prevent path traversal
-		if (relativePath.includes("..")) {
-			throw new Error("Path traversal detected in file path");
-		}
-
 		// Normalize remote path (ensure it starts with /)
 		let remotePath = this.config.remotePath;
 		if (!remotePath.startsWith("/")) {
@@ -182,11 +303,6 @@ export class ConfigManager {
 
 		// Combine remote path with relative path (use forward slashes for remote)
 		const remoteFilePath = path.posix.join(remotePath, relativePath.split(path.sep).join("/"));
-
-		// Final security check on combined path
-		if (remoteFilePath.includes("..")) {
-			throw new Error("Path traversal detected in remote path");
-		}
 
 		return remoteFilePath;
 	}

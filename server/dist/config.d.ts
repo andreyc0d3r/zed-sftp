@@ -1,6 +1,6 @@
 export interface SftpConfig {
     name?: string;
-    protocol: "sftp" | "ftp" | "ftps";
+    protocol?: "sftp" | "ftp" | "ftps";
     host: string;
     port?: number;
     username: string;
@@ -33,6 +33,7 @@ export interface SftpConfig {
     };
     defaultProfile?: string;
 }
+export declare function parseJsonc(content: string): unknown;
 export declare class ConfigManager {
     private workspaceFolder;
     private config;

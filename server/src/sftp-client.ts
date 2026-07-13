@@ -18,6 +18,15 @@ export class SftpClient {
     this.configManager = configManager;
   }
 
+  async updateConfig(config: SftpConfig): Promise<void> {
+    if (JSON.stringify(config) === JSON.stringify(this.config)) {
+      return;
+    }
+
+    await this.disconnect();
+    this.config = config;
+  }
+
   private async connect(): Promise<void> {
     if (this.isConnected) {
       return;
@@ -202,4 +211,3 @@ export class SftpClient {
     await this.disconnect();
   }
 }
-

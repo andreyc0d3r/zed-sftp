@@ -48,6 +48,13 @@ class SftpClient {
         this.connection = connection;
         this.configManager = configManager;
     }
+    async updateConfig(config) {
+        if (JSON.stringify(config) === JSON.stringify(this.config)) {
+            return;
+        }
+        await this.disconnect();
+        this.config = config;
+    }
     async connect() {
         if (this.isConnected) {
             return;

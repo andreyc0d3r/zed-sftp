@@ -38,6 +38,8 @@ const vscode_languageserver_textdocument_1 = require("vscode-languageserver-text
 const path = __importStar(require("path"));
 const sftp_client_1 = require("./sftp-client");
 const config_1 = require("./config");
+const commands_1 = require("./commands");
+const workspace_1 = require("./workspace");
 // Add error handlers
 process.on("uncaughtException", (error) => {
     console.error("Uncaught Exception:", error);
@@ -53,10 +55,24 @@ const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.
 let workspaceFolder;
 let configManager;
 let sftpClient;
-connection.onInitialize((params) => {
-    if (params.workspaceFolders && params.workspaceFolders.length > 0) {
-        workspaceFolder = params.workspaceFolders[0].uri.replace("file://", "");
+async function loadSftpClient() {
+    if (!configManager) {
+        return null;
     }
+    const config = await configManager.loadConfig();
+    if (!config) {
+        return null;
+    }
+    if (!sftpClient) {
+        sftpClient = new sftp_client_1.SftpClient(config, connection, configManager);
+    }
+    else {
+        await sftpClient.updateConfig(config);
+    }
+    return { config, client: sftpClient };
+}
+connection.onInitialize((params) => {
+    workspaceFolder = (0, workspace_1.getWorkspaceFolder)(params);
     const result = {
         capabilities: {
             textDocumentSync: {
@@ -66,8 +82,9 @@ connection.onInitialize((params) => {
                     includeText: false,
                 },
             },
+            codeActionProvider: true,
             executeCommandProvider: {
-                commands: ["sftp.upload", "sftp.download", "sftp.sync", "sftp.uploadFolder", "sftp.downloadFolder"],
+                commands: [...commands_1.SFTP_COMMANDS],
             },
         },
     };
@@ -78,9 +95,9 @@ connection.onInitialized(async () => {
     if (workspaceFolder) {
         try {
             configManager = new config_1.ConfigManager(workspaceFolder);
-            const config = await configManager.loadConfig();
-            if (config) {
-                sftpClient = new sftp_client_1.SftpClient(config, connection, configManager);
+            const loaded = await loadSftpClient();
+            if (loaded) {
+                const { config } = loaded;
                 connection.console.log(`SFTP config loaded for ${config.host}`);
                 // Log context path if set
                 if (config.context) {
@@ -99,30 +116,31 @@ connection.onInitialized(async () => {
             connection.console.error(`Failed to initialize SFTP: ${error}`);
         }
     }
+    else {
+        connection.console.error("SFTP requires a local workspace folder, but Zed did not provide one");
+    }
 });
 // Handle document save
 documents.onDidSave(async (event) => {
-    if (!sftpClient || !configManager) {
-        return;
-    }
-    const config = await configManager.loadConfig();
-    if (!config || !config.uploadOnSave) {
-        return;
-    }
-    const filePath = event.document.uri.replace("file://", "");
-    // Check if file is within context path
-    if (!configManager.isInContext(filePath)) {
-        connection.console.log(`File is outside context path: ${filePath}`);
-        return;
-    }
-    // Check if file should be ignored
-    if (configManager.shouldIgnore(filePath)) {
-        connection.console.log(`Ignoring file: ${filePath}`);
+    if (!configManager) {
         return;
     }
     try {
+        const loaded = await loadSftpClient();
+        if (!loaded || !loaded.config?.uploadOnSave) {
+            return;
+        }
+        const filePath = (0, workspace_1.fileUriToPath)(event.document.uri);
+        if (!configManager.isInContext(filePath)) {
+            connection.console.log(`File is outside context path: ${filePath}`);
+            return;
+        }
+        if (configManager.shouldIgnore(filePath)) {
+            connection.console.log(`Ignoring file: ${filePath}`);
+            return;
+        }
         connection.console.log(`Uploading file on save: ${filePath}`);
-        await sftpClient.uploadFile(filePath);
+        await loaded.client.uploadFile(filePath);
         connection.window.showInformationMessage(`Uploaded: ${path.basename(filePath)}`);
     }
     catch (error) {
@@ -130,45 +148,63 @@ documents.onDidSave(async (event) => {
         connection.window.showErrorMessage(`Failed to upload: ${error}`);
     }
 });
+connection.onCodeAction(async (params) => {
+    if (!configManager) {
+        return [];
+    }
+    try {
+        const loaded = await loadSftpClient();
+        if (!loaded) {
+            return [];
+        }
+        const filePath = (0, workspace_1.fileUriToPath)(params.textDocument.uri);
+        if (!configManager.isInContext(filePath) || configManager.shouldIgnore(filePath)) {
+            return [];
+        }
+        return (0, commands_1.createSftpCodeActions)(filePath);
+    }
+    catch (error) {
+        connection.console.warn(`Cannot provide SFTP actions: ${error}`);
+        return [];
+    }
+});
 // Handle commands
 connection.onExecuteCommand(async (params) => {
-    if (!sftpClient || !configManager) {
+    if (!configManager) {
         connection.window.showErrorMessage("SFTP not configured");
         return;
     }
     try {
+        const loaded = await loadSftpClient();
+        if (!loaded) {
+            connection.window.showErrorMessage("SFTP not configured");
+            return;
+        }
+        const client = loaded.client;
         switch (params.command) {
             case "sftp.upload":
-                if (params.arguments && params.arguments[0]) {
-                    const filePath = params.arguments[0];
-                    await sftpClient.uploadFile(filePath);
-                    connection.window.showInformationMessage(`Uploaded: ${path.basename(filePath)}`);
-                }
+                const uploadPath = (0, workspace_1.commandArgumentToPath)(params.arguments?.[0]);
+                await client.uploadFile(uploadPath);
+                connection.window.showInformationMessage(`Uploaded: ${path.basename(uploadPath)}`);
                 break;
             case "sftp.download":
-                if (params.arguments && params.arguments[0]) {
-                    const filePath = params.arguments[0];
-                    await sftpClient.downloadFile(filePath);
-                    connection.window.showInformationMessage(`Downloaded: ${path.basename(filePath)}`);
-                }
+                const downloadPath = (0, workspace_1.commandArgumentToPath)(params.arguments?.[0]);
+                await client.downloadFile(downloadPath);
+                connection.window.showInformationMessage(`Downloaded: ${path.basename(downloadPath)}`);
                 break;
             case "sftp.sync":
-                await sftpClient.syncFolder(workspaceFolder);
+                await client.syncFolder(workspaceFolder);
                 connection.window.showInformationMessage("Sync completed");
                 break;
             case "sftp.uploadFolder":
-                if (params.arguments && params.arguments[0]) {
-                    const folderPath = params.arguments[0];
-                    await sftpClient.uploadFolder(folderPath);
-                    connection.window.showInformationMessage(`Uploaded folder: ${path.basename(folderPath)}`);
-                }
+                const uploadFolderPath = (0, workspace_1.commandArgumentToPath)(params.arguments?.[0]);
+                await client.uploadFolder(uploadFolderPath);
+                connection.window.showInformationMessage(`Uploaded folder: ${path.basename(uploadFolderPath)}`);
                 break;
             case "sftp.downloadFolder":
-                if (params.arguments && params.arguments[0]) {
-                    const folderPath = params.arguments[0];
-                    await sftpClient.downloadFolder(folderPath);
-                    connection.window.showInformationMessage(`Downloaded folder: ${path.basename(folderPath)}`);
-                }
+                const downloadFolderPath = (0, workspace_1.commandArgumentToPath)(params.arguments?.[0]);
+                await client.downloadFolder(downloadFolderPath);
+                connection.window.showInformationMessage(`Downloaded folder: ${path.basename(downloadFolderPath)}`);
                 break;
             default:
                 connection.window.showErrorMessage(`Unknown command: ${params.command}`);

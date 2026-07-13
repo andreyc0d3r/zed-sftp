@@ -1,6 +1,6 @@
 id = "sftp"
 name = "SFTP"
-version = "0.1.0"
+version = "0.1.1"
 schema_version = 1
 authors = ["Andrey <andreyc0d3r@gmail.com>"]
 description = "SFTP file synchronization for Zed - Automatic upload on save with context path support"

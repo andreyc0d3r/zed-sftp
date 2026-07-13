@@ -34,7 +34,7 @@ cd zed-sftp
 
 ## Step 2: Configure SFTP
 
-Create `.zed/sftp.json` in your project root:
+Create `.zed/sftp.json` in your project root. Comments and trailing commas are supported:
 
 ```json
 {
@@ -110,15 +110,15 @@ Create `.zed/sftp.json` in your project root:
 3. Save it (`Cmd+S` or `Ctrl+S`)
 4. Watch the notification - your file is uploaded! 🎉
 
-## Step 4: Use Commands
+## Step 4: Use Manual Actions
 
-Open command palette (`Cmd+Shift+P` or `Ctrl+Shift+P`) and try:
+Open a project file, then press `Cmd+.` (macOS) or `Ctrl+.` (Linux/Windows) to open code actions and choose:
 
 - **SFTP: Upload File** - Upload current file
 - **SFTP: Download File** - Download from server
-- **SFTP: Sync** - Sync entire project
-- **SFTP: Upload Folder** - Upload a folder
-- **SFTP: Download Folder** - Download a folder
+- **SFTP: Sync Workspace** - Sync the entire workspace
+- **SFTP: Upload Current Folder** - Upload the current file's folder
+- **SFTP: Download Current Folder** - Download the current file's folder
 
 ## Troubleshooting
 
@@ -338,4 +338,3 @@ tail -f ~/.local/share/zed/logs/Zed.log
 ---
 
 **Happy coding with Zed + SFTP!** 🚀
-

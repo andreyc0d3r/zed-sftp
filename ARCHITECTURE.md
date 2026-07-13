@@ -74,15 +74,15 @@ The language server is written in TypeScript and compiled to JavaScript. It:
 ### Manual Command Flow
 
 ```
-1. User runs command (e.g., "SFTP: Upload File")
+1. User opens Zed code actions and selects an SFTP action
    ↓
-2. Zed sends executeCommand request to language server
+2. Zed requests textDocument/codeAction from the language server
    ↓
-3. Language server receives command with arguments
+3. Language server returns an action backed by an LSP command
    ↓
-4. Execute appropriate SFTP operation
+4. Zed sends workspace/executeCommand to the language server
    ↓
-5. Show result notification in Zed
+5. Language server executes the SFTP operation and shows a notification
 ```
 
 ## Why Language Server?
@@ -90,7 +90,7 @@ The language server is written in TypeScript and compiled to JavaScript. It:
 Using a language server provides several advantages:
 
 1. **File Save Events** - LSP provides `textDocument/didSave` events
-2. **Command Execution** - LSP supports custom commands
+2. **Manual Operations** - LSP code actions invoke custom commands
 3. **Notifications** - Can show messages to users
 4. **Logging** - Built-in logging to Zed's console
 5. **Standard Protocol** - Well-documented and supported by Zed
@@ -100,7 +100,7 @@ Using a language server provides several advantages:
 | Feature | VSCode Extension | This Zed Extension |
 |---------|------------------|-------------------|
 | File watching | VSCode File System API | LSP didSave events |
-| Commands | VSCode Commands API | LSP executeCommand |
+| Commands | VSCode Commands API | LSP code actions + executeCommand |
 | Configuration | VSCode Settings API | JSON file + LSP |
 | UI | VSCode UI API | LSP notifications |
 | SFTP Library | ssh2 (Node.js) | ssh2-sftp-client (Node.js) |
@@ -240,4 +240,3 @@ cargo test
 ## License
 
 MIT License - See LICENSE file for details
-

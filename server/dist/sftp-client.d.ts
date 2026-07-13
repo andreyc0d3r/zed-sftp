@@ -7,6 +7,7 @@ export declare class SftpClient {
     private configManager;
     private isConnected;
     constructor(config: SftpConfig, connection: Connection, configManager: ConfigManager);
+    updateConfig(config: SftpConfig): Promise<void>;
     private connect;
     private disconnect;
     uploadFile(localPath: string): Promise<void>;

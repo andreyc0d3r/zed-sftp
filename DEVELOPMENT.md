@@ -276,7 +276,11 @@ cargo clippy
 
 ### Add a New Command
 
-1. **Register in language server** (`server/src/index.ts`):
+1. **Register the command ID** (`server/src/commands.ts`).
+
+2. **Expose a code action** (`server/src/commands.ts`) so users can invoke it from Zed.
+
+3. **Handle it in the language server** (`server/src/index.ts`):
    ```typescript
    connection.onExecuteCommand(async (params) => {
      switch (params.command) {
@@ -287,14 +291,14 @@ cargo clippy
    });
    ```
 
-2. **Implement handler**:
+4. **Implement the operation**:
    ```typescript
    async function handleMyNewCommand(args: any[]) {
      // Implementation
    }
    ```
 
-3. **Update README** with new command
+5. **Update tests and README** with the new action
 
 ### Add Configuration Option
 
@@ -407,4 +411,3 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 ## License
 
 MIT License - See LICENSE file
-

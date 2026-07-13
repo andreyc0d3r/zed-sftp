@@ -66,7 +66,7 @@ cargo build --release
 
 ## ⚙️ Configuration
 
-Create a `.zed/sftp.json` file in your project root:
+Create a `.zed/sftp.json` file in your project root. The file supports JSONC comments and trailing commas:
 
 ```json
 {
@@ -157,13 +157,15 @@ Once configured with `"uploadOnSave": true`, files will automatically upload whe
 
 ### Manual Commands
 
-Use the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) to run:
+With a project file open, use `editor: toggle code actions` (`Cmd+.` / `Ctrl+.`) and select:
 
 - **SFTP: Upload File** - Upload current file
 - **SFTP: Download File** - Download current file
-- **SFTP: Upload Folder** - Upload entire folder
-- **SFTP: Download Folder** - Download entire folder
-- **SFTP: Sync** - Sync local to remote
+- **SFTP: Upload Current Folder** - Upload the current file's folder
+- **SFTP: Download Current Folder** - Download the current file's folder
+- **SFTP: Sync Workspace** - Sync local workspace to remote
+
+Zed extensions cannot currently register arbitrary top-level command-palette actions. The code-action menu invokes the same LSP commands through Zed's supported language-server integration.
 
 ### Configuration Options
 
@@ -454,4 +456,3 @@ MIT License - See [LICENSE](LICENSE) for details
 ---
 
 **Made with ❤️ for the Zed community**
-
