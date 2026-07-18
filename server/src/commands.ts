@@ -7,6 +7,7 @@ export const SFTP_COMMANDS = [
 	"sftp.sync",
 	"sftp.uploadFolder",
 	"sftp.downloadFolder",
+	"sftp.reconnect",
 ] as const;
 
 export function createSftpCodeActions(filePath: string): Command[] {
@@ -36,6 +37,10 @@ export function createSftpCodeActions(filePath: string): Command[] {
 		{
 			title: "SFTP: Sync Workspace",
 			command: "sftp.sync",
+		},
+		{
+			title: "SFTP: Reconnect",
+			command: "sftp.reconnect",
 		},
 	];
 }

@@ -211,6 +211,11 @@ connection.onExecuteCommand(async (params: ExecuteCommandParams) => {
 				connection.window.showInformationMessage(`Downloaded folder: ${path.basename(downloadFolderPath)}`);
 				break;
 
+			case "sftp.reconnect":
+				await client.reconnect();
+				connection.window.showInformationMessage("SFTP connection restored");
+				break;
+
 			default:
 				connection.window.showErrorMessage(`Unknown command: ${params.command}`);
 		}

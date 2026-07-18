@@ -164,6 +164,9 @@ With a project file open, use `editor: toggle code actions` (`Cmd+.` / `Ctrl+.`)
 - **SFTP: Upload Current Folder** - Upload the current file's folder
 - **SFTP: Download Current Folder** - Download the current file's folder
 - **SFTP: Sync Workspace** - Sync local workspace to remote
+- **SFTP: Reconnect** - Manually restore the connection after a network interruption
+
+Dropped connections are automatically re-established and the interrupted operation is retried once. This includes connections invalidated while the computer is asleep.
 
 Zed extensions cannot currently register arbitrary top-level command-palette actions. The code-action menu invokes the same LSP commands through Zed's supported language-server integration.
 
@@ -186,6 +189,7 @@ Zed extensions cannot currently register arbitrary top-level command-palette act
 | `ignore` | string[] | `[]` | Ignore patterns (glob) |
 | `concurrency` | number | `4` | Max concurrent transfers |
 | `connectTimeout` | number | `10000` | Connection timeout (ms) |
+| `keepalive` | number | `0` | SSH keepalive interval in milliseconds (`0` disables keepalives) |
 
 ## 📚 Documentation
 

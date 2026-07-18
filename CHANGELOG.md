@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Reconnect and retry once when an SFTP operation encounters a connection dropped by sleep or another network interruption.
+- Apply the configured SSH keepalive interval so dead connections are detected sooner.
+
+### Added
+
+- Add an `SFTP: Reconnect` code action for manually restoring the connection without restarting Zed.
+
 ## [0.1.1] - 2026-07-13
 
 ### Fixed

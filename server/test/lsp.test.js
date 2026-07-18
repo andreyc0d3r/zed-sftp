@@ -114,6 +114,7 @@ test("LSP initializes from rootUri and returns executable SFTP code actions", as
     "sftp.sync",
     "sftp.uploadFolder",
     "sftp.downloadFolder",
+    "sftp.reconnect",
   ]);
 
   server.send({ method: "initialized", params: {} });
@@ -133,7 +134,14 @@ test("LSP initializes from rootUri and returns executable SFTP code actions", as
 
   assert.deepEqual(
     actions.map((action) => action.command),
-    ["sftp.upload", "sftp.download", "sftp.uploadFolder", "sftp.downloadFolder", "sftp.sync"],
+    [
+      "sftp.upload",
+      "sftp.download",
+      "sftp.uploadFolder",
+      "sftp.downloadFolder",
+      "sftp.sync",
+      "sftp.reconnect",
+    ],
   );
 
   await server.request("shutdown");

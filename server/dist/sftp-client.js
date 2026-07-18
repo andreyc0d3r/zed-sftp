@@ -43,10 +43,15 @@ const fs = __importStar(require("fs"));
 class SftpClient {
     constructor(config, connection, configManager) {
         this.isConnected = false;
+        this.connectPromise = null;
+        this.reconnectPromise = null;
         this.client = new ssh2_sftp_client_1.default();
         this.config = config;
         this.connection = connection;
         this.configManager = configManager;
+        this.client.on('close', () => this.markDisconnected('closed'));
+        this.client.on('end', () => this.markDisconnected('ended'));
+        this.client.on('error', (error) => this.markDisconnected('failed', error));
     }
     async updateConfig(config) {
         if (JSON.stringify(config) === JSON.stringify(this.config)) {
@@ -55,10 +60,30 @@ class SftpClient {
         await this.disconnect();
         this.config = config;
     }
+    markDisconnected(event, error) {
+        const wasConnected = this.isConnected;
+        this.isConnected = false;
+        if (wasConnected) {
+            const detail = error instanceof Error ? `: ${error.message}` : '';
+            this.connection.console.warn(`SFTP connection ${event}${detail}`);
+        }
+    }
     async connect() {
         if (this.isConnected) {
             return;
         }
+        if (this.connectPromise) {
+            return this.connectPromise;
+        }
+        this.connectPromise = this.establishConnection();
+        try {
+            await this.connectPromise;
+        }
+        finally {
+            this.connectPromise = null;
+        }
+    }
+    async establishConnection() {
         try {
             const connectConfig = {
                 host: this.config.host,
@@ -80,6 +105,9 @@ class SftpClient {
             if (this.config.connectTimeout) {
                 connectConfig.readyTimeout = this.config.connectTimeout;
             }
+            if (this.config.keepalive && this.config.keepalive > 0) {
+                connectConfig.keepaliveInterval = this.config.keepalive;
+            }
             await this.client.connect(connectConfig);
             this.isConnected = true;
             this.connection.console.log(`Connected to ${this.config.host}`);
@@ -90,13 +118,66 @@ class SftpClient {
         }
     }
     async disconnect() {
-        if (this.isConnected) {
+        this.isConnected = false;
+        try {
             await this.client.end();
-            this.isConnected = false;
+        }
+        catch (error) {
+            this.connection.console.warn(`Failed to close SFTP connection cleanly: ${error}`);
         }
     }
-    async uploadFile(localPath) {
+    isConnectionFailure(error) {
+        if (!this.isConnected) {
+            return true;
+        }
+        const code = typeof error === 'object' && error !== null && 'code' in error
+            ? String(error.code)
+            : '';
+        const message = error instanceof Error ? error.message : String(error);
+        return ([
+            'ECONNABORTED',
+            'ECONNRESET',
+            'ENOTCONN',
+            'EPIPE',
+            'ERR_GENERIC_CLIENT',
+            'ERR_NOT_CONNECTED',
+            'ERR_SOCKET_CLOSED',
+            'ERR_STREAM_DESTROYED',
+            'ETIMEDOUT',
+        ].includes(code) ||
+            /No SFTP connection available|Unexpected (?:close|end) event|socket (?:closed|disconnected)|write after end/i.test(message));
+    }
+    async executeWithReconnect(operationName, operation) {
         await this.connect();
+        try {
+            return await operation(this.client);
+        }
+        catch (error) {
+            if (!this.isConnectionFailure(error)) {
+                throw error;
+            }
+            this.connection.console.warn(`SFTP connection lost during ${operationName}; reconnecting and retrying once`);
+            await this.reconnect();
+            return operation(this.client);
+        }
+    }
+    async reconnect() {
+        if (this.reconnectPromise) {
+            return this.reconnectPromise;
+        }
+        this.reconnectPromise = this.resetConnection();
+        try {
+            await this.reconnectPromise;
+        }
+        finally {
+            this.reconnectPromise = null;
+        }
+    }
+    async resetConnection() {
+        await this.disconnect();
+        await this.connect();
+    }
+    async uploadFile(localPath) {
         try {
             // Use ConfigManager to get remote path (respects context setting)
             const remotePath = this.configManager.getRemotePath(localPath);
@@ -105,10 +186,12 @@ class SftpClient {
                 return;
             }
             const remoteDir = path.posix.dirname(remotePath);
-            // Ensure remote directory exists
-            await this.client.mkdir(remoteDir, true);
-            // Upload file
-            await this.client.put(localPath, remotePath);
+            await this.executeWithReconnect('file upload', async (client) => {
+                // Ensure remote directory exists
+                await client.mkdir(remoteDir, true);
+                // Upload file
+                await client.put(localPath, remotePath);
+            });
             this.connection.console.log(`Uploaded: ${localPath} -> ${remotePath}`);
         }
         catch (error) {
@@ -116,7 +199,6 @@ class SftpClient {
         }
     }
     async downloadFile(localPath) {
-        await this.connect();
         try {
             const remotePath = this.configManager.getRemotePath(localPath);
             if (!remotePath) {
@@ -129,7 +211,7 @@ class SftpClient {
                 fs.mkdirSync(localDir, { recursive: true });
             }
             // Download file
-            await this.client.get(remotePath, localPath);
+            await this.executeWithReconnect('file download', (client) => client.get(remotePath, localPath));
             this.connection.console.log(`Downloaded: ${remotePath} -> ${localPath}`);
         }
         catch (error) {
@@ -137,7 +219,6 @@ class SftpClient {
         }
     }
     async uploadFolder(localFolderPath) {
-        await this.connect();
         try {
             const remoteFolderPath = this.configManager.getRemotePath(localFolderPath);
             if (!remoteFolderPath) {
@@ -145,7 +226,7 @@ class SftpClient {
                 return;
             }
             // Upload directory recursively
-            await this.client.uploadDir(localFolderPath, remoteFolderPath);
+            await this.executeWithReconnect('folder upload', (client) => client.uploadDir(localFolderPath, remoteFolderPath));
             this.connection.console.log(`Uploaded folder: ${localFolderPath} -> ${remoteFolderPath}`);
         }
         catch (error) {
@@ -153,7 +234,6 @@ class SftpClient {
         }
     }
     async downloadFolder(localFolderPath) {
-        await this.connect();
         try {
             const remoteFolderPath = this.configManager.getRemotePath(localFolderPath);
             if (!remoteFolderPath) {
@@ -165,7 +245,7 @@ class SftpClient {
                 fs.mkdirSync(localFolderPath, { recursive: true });
             }
             // Download directory recursively
-            await this.client.downloadDir(remoteFolderPath, localFolderPath);
+            await this.executeWithReconnect('folder download', (client) => client.downloadDir(remoteFolderPath, localFolderPath));
             this.connection.console.log(`Downloaded folder: ${remoteFolderPath} -> ${localFolderPath}`);
         }
         catch (error) {
@@ -173,7 +253,6 @@ class SftpClient {
         }
     }
     async syncFolder(localFolderPath) {
-        await this.connect();
         try {
             const remoteFolderPath = this.configManager.getRemotePath(localFolderPath);
             if (!remoteFolderPath) {
@@ -181,7 +260,7 @@ class SftpClient {
                 return;
             }
             // Upload directory (this will sync local to remote)
-            await this.client.uploadDir(localFolderPath, remoteFolderPath);
+            await this.executeWithReconnect('folder sync', (client) => client.uploadDir(localFolderPath, remoteFolderPath));
             this.connection.console.log(`Synced folder: ${localFolderPath} -> ${remoteFolderPath}`);
         }
         catch (error) {
@@ -189,9 +268,8 @@ class SftpClient {
         }
     }
     async listRemoteFiles(remotePath) {
-        await this.connect();
         try {
-            const list = await this.client.list(remotePath);
+            const list = await this.executeWithReconnect('remote listing', (client) => client.list(remotePath));
             return list.map((item) => item.name);
         }
         catch (error) {
@@ -199,9 +277,8 @@ class SftpClient {
         }
     }
     async deleteRemoteFile(remotePath) {
-        await this.connect();
         try {
-            await this.client.delete(remotePath);
+            await this.executeWithReconnect('remote file deletion', (client) => client.delete(remotePath));
             this.connection.console.log(`Deleted remote file: ${remotePath}`);
         }
         catch (error) {

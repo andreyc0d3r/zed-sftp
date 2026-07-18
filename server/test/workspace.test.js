@@ -44,6 +44,7 @@ test("manual SFTP actions invoke advertised commands with local paths", () => {
       { title: "SFTP: Upload Current Folder", command: "sftp.uploadFolder" },
       { title: "SFTP: Download Current Folder", command: "sftp.downloadFolder" },
       { title: "SFTP: Sync Workspace", command: "sftp.sync" },
+      { title: "SFTP: Reconnect", command: "sftp.reconnect" },
     ],
   );
   assert.equal(actions[0].arguments[0], filePath);

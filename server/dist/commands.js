@@ -42,6 +42,7 @@ exports.SFTP_COMMANDS = [
     "sftp.sync",
     "sftp.uploadFolder",
     "sftp.downloadFolder",
+    "sftp.reconnect",
 ];
 function createSftpCodeActions(filePath) {
     const folderPath = path.dirname(filePath);
@@ -69,6 +70,10 @@ function createSftpCodeActions(filePath) {
         {
             title: "SFTP: Sync Workspace",
             command: "sftp.sync",
+        },
+        {
+            title: "SFTP: Reconnect",
+            command: "sftp.reconnect",
         },
     ];
 }
