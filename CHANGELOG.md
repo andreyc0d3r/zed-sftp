@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.1.2] - 2026-07-22
 
 ### Fixed
 
@@ -31,4 +31,5 @@ All notable changes to this project will be documented in this file.
 - Document manual operations through `editor: toggle code actions` (`Cmd+.` on macOS or `Ctrl+.` on Linux and Windows).
 - Add automated configuration, path handling, command, and stdio LSP regression tests.
 
-[0.1.1]: https://github.com/andreyc0d3r/zed-sftp/compare/24f7174...main
+[0.1.2]: https://github.com/andreyc0d3r/zed-sftp/compare/72d1398...main
+[0.1.1]: https://github.com/andreyc0d3r/zed-sftp/compare/24f7174...72d1398

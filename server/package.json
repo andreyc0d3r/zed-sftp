@@ -1,6 +1,6 @@
 {
   "name": "zed-sftp-server",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "SFTP Language Server for Zed",
   "main": "dist/index.js",
   "files": [
