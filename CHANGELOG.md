@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.3] - 2026-08-17
+
+### Added
+
+- Authenticate through an SSH agent with `"agent": "$SSH_AUTH_SOCK"`, an explicit socket path, or Pageant without storing a private-key passphrase in SFTP configuration.
+- Report a clear connection error when SSH agent authentication is requested but `SSH_AUTH_SOCK` is unavailable to Zed.
+
 ## [0.1.2] - 2026-07-22
 
 ### Fixed
@@ -31,5 +38,6 @@ All notable changes to this project will be documented in this file.
 - Document manual operations through `editor: toggle code actions` (`Cmd+.` on macOS or `Ctrl+.` on Linux and Windows).
 - Add automated configuration, path handling, command, and stdio LSP regression tests.
 
-[0.1.2]: https://github.com/andreyc0d3r/zed-sftp/compare/72d1398...main
+[0.1.3]: https://github.com/andreyc0d3r/zed-sftp/compare/6c677af...main
+[0.1.2]: https://github.com/andreyc0d3r/zed-sftp/compare/72d1398...6c677af
 [0.1.1]: https://github.com/andreyc0d3r/zed-sftp/compare/24f7174...72d1398

@@ -101,6 +101,17 @@ class SftpClient {
                     connectConfig.passphrase = this.config.passphrase;
                 }
             }
+            else if (this.config.agent) {
+                if (this.config.agent === '$SSH_AUTH_SOCK') {
+                    if (!process.env.SSH_AUTH_SOCK) {
+                        throw new Error('SSH agent authentication requires SSH_AUTH_SOCK to be set in Zed\'s environment');
+                    }
+                    connectConfig.agent = process.env.SSH_AUTH_SOCK;
+                }
+                else {
+                    connectConfig.agent = this.config.agent;
+                }
+            }
             // Connection timeout
             if (this.config.connectTimeout) {
                 connectConfig.readyTimeout = this.config.connectTimeout;

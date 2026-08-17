@@ -12,6 +12,8 @@ The Rust extension is the entry point that Zed loads. It:
 
 - Implements the `zed::Extension` trait
 - Provides the `language_server_command` to start the Node.js language server
+- Queries npm for the latest `zed-sftp-server` package and installs updates through the Zed extension API
+- Caches the installed server path for the current Zed session
 - Handles language server lifecycle management
 - Passes configuration from Zed to the language server
 
@@ -24,6 +26,8 @@ The language server is written in TypeScript and compiled to JavaScript. It:
 - Handles SFTP operations (upload, download, sync)
 - Manages SFTP connections
 - Provides command execution for manual operations
+
+The compiled server is published separately as `zed-sftp-server` on npm. Installed extensions run the npm package, not the checked-in `server/dist` directory.
 
 #### Key Files:
 
@@ -95,6 +99,17 @@ Using a language server provides several advantages:
 4. **Logging** - Built-in logging to Zed's console
 5. **Standard Protocol** - Well-documented and supported by Zed
 
+## Delivery and Updates
+
+The Rust extension and Node.js server have separate delivery paths:
+
+1. The Zed registry points to a specific extension version and repository commit.
+2. When the language server starts, the Rust extension compares the installed `zed-sftp-server` package with npm `latest`.
+3. If needed, it downloads the npm package and runs `node_modules/zed-sftp-server/dist/index.js`.
+4. The resolved server path is cached until Zed or the extension is restarted.
+
+Consequently, pushing server code to GitHub does not update installed users. The npm package must be published and publicly verified, and users must restart Zed or reload the extension once. See [RELEASING.md](RELEASING.md) for the required release sequence.
+
 ## Comparison with VSCode Extension
 
 | Feature | VSCode Extension | This Zed Extension |
@@ -122,18 +137,19 @@ This allows users to:
 
 Supports multiple authentication methods:
 
-1. **SSH Private Key** (Recommended)
+1. **SSH Agent** (Recommended)
+   - Resolves `"agent": "$SSH_AUTH_SOCK"` from the language server environment
+   - Uses keys already loaded into the user's agent
+   - Keeps private-key passphrases out of project configuration
+   - Also accepts explicit socket paths and `pageant`
+
+2. **SSH Private Key**
    - Reads key from `~/.ssh/id_rsa` or custom path
    - Supports passphrase-protected keys
-   - Most secure method
 
-2. **Password**
+3. **Password**
    - Stored in configuration file
    - Less secure, not recommended for production
-
-3. **Interactive Auth**
-   - Can be enabled for servers requiring it
-   - Handled by ssh2-sftp-client
 
 ## Connection Management
 

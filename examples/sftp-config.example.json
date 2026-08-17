@@ -24,9 +24,7 @@
   "concurrency": 4,
   "connectTimeout": 10000,
   "keepalive": 10000,
-  "privateKeyPath": "~/.ssh/id_rsa",
-  "passphrase": null,
-  "interactiveAuth": false,
+  "agent": "$SSH_AUTH_SOCK",
   "algorithms": {
     "kex": [
       "ecdh-sha2-nistp256",
@@ -57,4 +55,3 @@
     ]
   }
 }
-

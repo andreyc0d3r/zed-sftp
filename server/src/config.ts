@@ -11,6 +11,7 @@ export interface SftpConfig {
 	password?: string;
 	privateKeyPath?: string;
 	passphrase?: string;
+	agent?: string;
 	remotePath: string;
 	localPath?: string;
 	context?: string; // Local subdirectory to use as root (e.g., "site/wp-content/")
@@ -204,8 +205,8 @@ export class ConfigManager {
 				throw new Error("Missing required field: remotePath");
 			}
 
-			if (!this.config.password && !this.config.privateKeyPath) {
-				throw new Error("Either password or privateKeyPath must be provided");
+			if (!this.config.password && !this.config.privateKeyPath && !this.config.agent) {
+				throw new Error("One of password, privateKeyPath, or agent must be provided");
 			}
 
 			this.config.protocol ??= "sftp";

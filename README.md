@@ -12,6 +12,7 @@ This is a Zed extension for SFTP/FTP file synchronization, inspired by the popul
 - **Sync Folders** - Synchronize entire directories between local and remote
 - **Multiple Profiles** - Support for multiple server configurations
 - **Ignore Patterns** - Exclude files and folders from sync (like .git, node_modules)
+- **SSH Agent Authentication** - Use keys loaded into `ssh-agent` without storing passphrases
 - **SSH Key Authentication** - Secure authentication with SSH keys
 - **Password Authentication** - Support for password-based authentication
 
@@ -87,7 +88,30 @@ Create a `.zed/sftp.json` file in your project root. The file supports JSONC com
 
 ### Authentication Options
 
-**SSH Key (Recommended):**
+**SSH Agent (Recommended):**
+
+Load the key into your SSH agent before opening Zed:
+
+```bash
+ssh-add ~/.ssh/id_ed25519
+ssh-add -l
+```
+
+Then reference the agent in your configuration:
+
+```json
+{
+  "username": "user",
+  "agent": "$SSH_AUTH_SOCK"
+}
+```
+
+`$SSH_AUTH_SOCK` is resolved from Zed's environment when the connection is opened. The private key and its passphrase are never stored in the SFTP configuration. If the socket changes, restart Zed or reload the extension so the language server receives the updated environment.
+
+An explicit agent socket path is also supported. Windows users can set `"agent": "pageant"` when authenticating with Pageant.
+
+**Direct SSH Key:**
+
 ```json
 {
   "username": "user",
@@ -181,7 +205,8 @@ Zed extensions cannot currently register arbitrary top-level command-palette act
 | `username` | string | **required** | Username |
 | `password` | string | - | Password (not recommended) |
 | `privateKeyPath` | string | - | Path to SSH private key |
-| `passphrase` | string | - | SSH key passphrase |
+| `passphrase` | string | - | SSH key passphrase used with `privateKeyPath` |
+| `agent` | string | - | `$SSH_AUTH_SOCK`, an explicit agent socket path, or `pageant` |
 | `remotePath` | string | **required** | Remote directory path |
 | `localPath` | string | workspace | Local directory path |
 | `context` | string | - | Local subdirectory to use as root (e.g., `"site/wp-content/"`) |
@@ -195,6 +220,7 @@ Zed extensions cannot currently register arbitrary top-level command-palette act
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - How the extension works
 - **[DEVELOPMENT.md](DEVELOPMENT.md)** - Development guide
+- **[RELEASING.md](RELEASING.md)** - npm and Zed registry release checklist
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - How to contribute
 - **[examples/](examples/)** - Configuration examples
 
@@ -250,6 +276,7 @@ Zed extensions cannot currently register arbitrary top-level command-palette act
 | Upload on Save | ✅ | ✅ | Implemented |
 | Download Files | ✅ | ✅ | Implemented |
 | Sync Folders | ✅ | ✅ | Implemented |
+| SSH Agent | ✅ | ✅ | Implemented |
 | SSH Keys | ✅ | ✅ | Implemented |
 | Password Auth | ✅ | ✅ | Implemented |
 | Multiple Profiles | ✅ | ✅ | Implemented |

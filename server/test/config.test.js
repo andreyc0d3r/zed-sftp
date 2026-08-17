@@ -50,6 +50,29 @@ test("ConfigManager merges a selected profile before validation", async (t) => {
   assert.equal(config.protocol, "sftp");
 });
 
+test("ConfigManager accepts SSH agent authentication without stored credentials", async (t) => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "zed-sftp-agent-config-"));
+  t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));
+
+  fs.mkdirSync(path.join(workspace, ".zed"));
+  fs.writeFileSync(
+    path.join(workspace, ".zed", "sftp.json"),
+    JSON.stringify({
+      host: "example.com",
+      username: "deploy",
+      agent: "$SSH_AUTH_SOCK",
+      remotePath: "/remote",
+    }),
+  );
+
+  const manager = new ConfigManager(workspace);
+  const config = await manager.loadConfig();
+
+  assert.equal(config.agent, "$SSH_AUTH_SOCK");
+  assert.equal(config.password, undefined);
+  assert.equal(config.privateKeyPath, undefined);
+});
+
 test("context checks reject sibling paths with the same prefix", async (t) => {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), "zed-sftp-context-"));
   t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));

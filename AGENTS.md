@@ -30,6 +30,16 @@ cargo clean && rm -rf server/node_modules server/dist && ./setup.sh
 - Node.js v18+ 
 - Build outputs: `target/wasm32-wasip1/release/sftp.wasm` and `server/dist/index.js`
 
+## Release Invariants
+
+- The Rust extension does not run the checked-in `server/dist` bundle in installed extensions. It installs and runs the latest published `zed-sftp-server` package from npm.
+- Pushing TypeScript or generated `server/dist` changes to this repository does not make them available to installed users.
+- Never tell a user that an installed extension version contains a server fix until the corresponding `zed-sftp-server` version is published on npm and verified with `npm view`.
+- A complete extension release also requires matching versions in `extension.toml` and `Cargo.toml`, a changelog entry, and an updated SFTP entry and submodule commit in the open `zed-industries/extensions` registry PR or registry repository.
+- Installed users must restart Zed or reload the extension once after a new npm server release so the Rust extension checks for and downloads the new package.
+- Publishing npm packages, committing, pushing, and updating the registry are external changes and require explicit user approval.
+- Follow `RELEASING.md` for the required validation, publishing order, registry update, and user notification wording. Do not skip its public-package verification step.
+
 ## Architecture
 
 ### Two-Tier Design
@@ -46,26 +56,27 @@ Remote SFTP Server
 
 ### Component Responsibilities
 
-**Rust Extension (`src/lib.rs` - ~45 lines)**
+**Rust Extension (`src/lib.rs`)**
 - Implements `zed::Extension` trait
 - Provides `language_server_command()` to spawn Node.js server
-- Uses `std::env::current_dir()` to find server (Zed runs extensions from their directory)
+- Queries npm for the latest `zed-sftp-server` version and installs it through the Zed extension API
+- Caches and runs `node_modules/zed-sftp-server/dist/index.js` from the extension installation directory
 - Uses `zed::node_binary_path()` to get Zed's bundled Node.js
 - Thin wrapper that delegates to Node.js server
 
 **Node.js Language Server (`server/src/`)**
-- **`index.ts`** (184 lines) - LSP server main entry point
+- **`index.ts`** - LSP server main entry point
   - Handles `textDocument/didSave` events for upload-on-save
   - Registers execute commands (upload, download, sync, uploadFolder, downloadFolder)
   - Manages ConfigManager and SftpClient lifecycle
   
-- **`sftp-client.ts`** (170 lines) - SFTP operations wrapper
+- **`sftp-client.ts`** - SFTP operations wrapper
   - Wraps `ssh2-sftp-client` library
-  - Manages connection lifecycle (lazy connect, connection reuse)
+  - Manages connection lifecycle (lazy connect, connection reuse, and one-time recovery retry)
   - Implements file/folder upload, download, sync operations
   - Handles SSH key and password authentication
   
-- **`config.ts`** (185 lines) - Configuration manager
+- **`config.ts`** - Configuration manager
   - Loads `.zed/sftp.json` (falls back to `.vscode/sftp.json`, then `sftp.json`)
   - Implements **context path** feature (maps local subdirectory to remote root)
   - Manages ignore patterns with glob matching via `minimatch`
@@ -97,6 +108,7 @@ Remote SFTP Server
 **Connection Management**
 - Lazy initialization: connects only on first operation
 - Connection reuse: maintains `isConnected` flag to avoid reconnecting
+- Connection-loss recovery: reconnects and retries interrupted operations once
 - Single connection shared across operations
 
 **Profile System**
@@ -225,9 +237,9 @@ cargo build --target wasm32-wasip1 --release
 cd server && npm run build
 ```
 
-### No Automated Tests
+### Automated Tests
 
-The codebase currently has no unit or integration tests. All testing is manual. Testing infrastructure would be a future enhancement.
+Run `cd server && npm test`. The Node test runner covers configuration, workspace paths, LSP command exposure, and SFTP reconnection behavior.
 
 ## Installation Paths
 
@@ -260,12 +272,12 @@ The installed path is a symlink to your development directory:
 ```
 sftp/
 ├── extension.wasm
-├── server/dist/index.js
+├── node_modules/zed-sftp-server/dist/index.js
 └── extension.toml
 ```
 
 **How the Extension Finds the Server:**
-Zed runs extensions from their installation directory, so the Rust extension uses `std::env::current_dir()` to locate the server files. This works automatically on all platforms and for both dev and production installations.
+The Rust extension asks npm for the latest `zed-sftp-server`, installs it with `zed::npm_install_package()`, and resolves the installed script beneath the extension directory. It checks for npm updates when the language server is started, before the server path is cached for that Zed session.
 
 ## Key Dependencies
 
@@ -346,6 +358,7 @@ Always:
 - **README.md** - User documentation, features, configuration reference
 - **ARCHITECTURE.md** - Technical architecture, design decisions, flow diagrams
 - **DEVELOPMENT.md** - Development guide, adding features, security practices
+- **RELEASING.md** - Required npm and Zed registry release workflow
 - **QUICK_START.md** - 5-minute setup guide
 - **TROUBLESHOOTING.md** - Common issues and solutions
 - **examples/** - Sample configurations for various scenarios

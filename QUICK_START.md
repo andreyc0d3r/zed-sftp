@@ -41,7 +41,7 @@ Create `.zed/sftp.json` in your project root. Comments and trailing commas are s
   "host": "your-server.com",
   "port": 22,
   "username": "your-username",
-  "privateKeyPath": "~/.ssh/id_rsa",
+  "agent": "$SSH_AUTH_SOCK",
   "remotePath": "/var/www/html",
   "uploadOnSave": true,
   "ignore": [
@@ -54,13 +54,15 @@ Create `.zed/sftp.json` in your project root. Comments and trailing commas are s
 
 ### Common Configurations
 
-#### SSH Key (Recommended)
+#### SSH Agent (Recommended)
+
+Load your key first with `ssh-add ~/.ssh/id_ed25519`, then use:
 
 ```json
 {
   "host": "example.com",
   "username": "deploy",
-  "privateKeyPath": "~/.ssh/id_rsa",
+  "agent": "$SSH_AUTH_SOCK",
   "remotePath": "/var/www/html",
   "uploadOnSave": true
 }
@@ -83,7 +85,7 @@ Create `.zed/sftp.json` in your project root. Comments and trailing commas are s
 ```json
 {
   "username": "deploy",
-  "privateKeyPath": "~/.ssh/id_rsa",
+  "agent": "$SSH_AUTH_SOCK",
   "profiles": {
     "dev": {
       "host": "dev.example.com",
@@ -179,6 +181,7 @@ Open a project file, then press `Cmd+.` (macOS) or `Ctrl+.` (Linux/Windows) to o
 
 | Option | Type | Description |
 |--------|------|-------------|
+| `agent` | string | `$SSH_AUTH_SOCK`, an agent socket path, or `pageant` |
 | `privateKeyPath` | string | Path to SSH private key |
 | `password` | string | SSH password |
 

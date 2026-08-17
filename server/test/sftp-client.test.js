@@ -30,6 +30,75 @@ function createClient(configOverrides = {}) {
   return { client, transport: client.client, messages };
 }
 
+function restoreEnvironmentVariable(name, value) {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}
+
+test("uses SSH_AUTH_SOCK for SSH agent authentication", async (t) => {
+  const originalSocket = process.env.SSH_AUTH_SOCK;
+  process.env.SSH_AUTH_SOCK = "/tmp/zed-sftp-test-agent.sock";
+  t.after(() => restoreEnvironmentVariable("SSH_AUTH_SOCK", originalSocket));
+
+  const { client, transport } = createClient({
+    password: undefined,
+    agent: "$SSH_AUTH_SOCK",
+  });
+  let connectConfig;
+
+  transport.connect = async (config) => {
+    connectConfig = config;
+  };
+  transport.mkdir = async () => "/remote";
+  transport.put = async () => "/remote/index.js";
+
+  await client.uploadFile("/workspace/index.js");
+
+  assert.equal(connectConfig.agent, "/tmp/zed-sftp-test-agent.sock");
+  assert.equal(connectConfig.password, undefined);
+  assert.equal(connectConfig.privateKey, undefined);
+});
+
+test("passes an explicit SSH agent socket through unchanged", async () => {
+  const { client, transport } = createClient({
+    password: undefined,
+    agent: "pageant",
+  });
+  let connectConfig;
+
+  transport.connect = async (config) => {
+    connectConfig = config;
+  };
+  transport.mkdir = async () => "/remote";
+  transport.put = async () => "/remote/index.js";
+
+  await client.uploadFile("/workspace/index.js");
+
+  assert.equal(connectConfig.agent, "pageant");
+});
+
+test("reports when SSH_AUTH_SOCK is unavailable", async (t) => {
+  const originalSocket = process.env.SSH_AUTH_SOCK;
+  delete process.env.SSH_AUTH_SOCK;
+  t.after(() => restoreEnvironmentVariable("SSH_AUTH_SOCK", originalSocket));
+
+  const { client, transport } = createClient({
+    password: undefined,
+    agent: "$SSH_AUTH_SOCK",
+  });
+  transport.connect = async () => {
+    assert.fail("transport.connect should not be called without SSH_AUTH_SOCK");
+  };
+
+  await assert.rejects(
+    client.uploadFile("/workspace/index.js"),
+    /SSH agent authentication requires SSH_AUTH_SOCK to be set in Zed's environment/,
+  );
+});
+
 test("reconnects after the SSH transport closes", async () => {
   const { client, transport } = createClient({ keepalive: 15000 });
   const connectConfigs = [];

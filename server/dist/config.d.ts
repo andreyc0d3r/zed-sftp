@@ -7,6 +7,7 @@ export interface SftpConfig {
     password?: string;
     privateKeyPath?: string;
     passphrase?: string;
+    agent?: string;
     remotePath: string;
     localPath?: string;
     context?: string;

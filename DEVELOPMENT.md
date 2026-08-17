@@ -354,7 +354,11 @@ cargo clippy
 
 ## Security Best Practices
 
-1. **Never Log Passwords**
+1. **Prefer SSH Agent Authentication**
+   - Use `"agent": "$SSH_AUTH_SOCK"` for encrypted private keys
+   - Do not store a private-key passphrase in project configuration when an agent is available
+
+2. **Never Log Passwords**
    ```typescript
    // Bad
    console.log(`Config: ${JSON.stringify(config)}`);
@@ -363,14 +367,14 @@ cargo clippy
    console.log(`Connected to ${config.host}`);
    ```
 
-2. **Validate Input**
+3. **Validate Input**
    ```typescript
    if (!config.host || !config.username) {
      throw new Error('Invalid configuration');
    }
    ```
 
-3. **Handle Errors Safely**
+4. **Handle Errors Safely**
    ```typescript
    try {
      await client.connect(config);
@@ -386,12 +390,16 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## Release Process
 
-1. Update version in `extension.toml` and `server/package.json`
-2. Update CHANGELOG.md
-3. Build and test
-4. Create git tag
-5. Push to GitHub
-6. Publish to Zed extension registry
+Follow [RELEASING.md](RELEASING.md). A server change is not released by pushing this repository because installed extensions run the latest published `zed-sftp-server` npm package.
+
+The minimum release sequence is:
+
+1. Update the server, extension, and changelog versions.
+2. Run the full server tests and npm package dry run.
+3. Publish and publicly verify the npm package.
+4. Commit and push the source release.
+5. Update the Zed registry version and SFTP submodule commit.
+6. Verify the registry PR and only then notify affected users.
 
 ## Resources
 

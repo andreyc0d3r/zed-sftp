@@ -179,8 +179,8 @@ class ConfigManager {
             if (!this.config.remotePath) {
                 throw new Error("Missing required field: remotePath");
             }
-            if (!this.config.password && !this.config.privateKeyPath) {
-                throw new Error("Either password or privateKeyPath must be provided");
+            if (!this.config.password && !this.config.privateKeyPath && !this.config.agent) {
+                throw new Error("One of password, privateKeyPath, or agent must be provided");
             }
             (_a = this.config).protocol ?? (_a.protocol = "sftp");
             // Set default local path

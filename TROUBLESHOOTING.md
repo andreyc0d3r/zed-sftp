@@ -118,6 +118,15 @@ chmod 600 ~/.ssh/id_rsa
 chmod 700 ~/.ssh
 ```
 
+For SSH agent authentication, confirm that `SSH_AUTH_SOCK` is available in the environment used to launch Zed:
+
+```bash
+echo "$SSH_AUTH_SOCK"
+ssh-add -l
+```
+
+If you start a new agent or change its socket, restart Zed or reload the extension before retrying.
+
 ### Verify Configuration
 
 Check `.zed/sftp.json`:
@@ -126,7 +135,7 @@ Check `.zed/sftp.json`:
 {
   "host": "example.com",
   "username": "user",
-  "privateKeyPath": "~/.ssh/id_rsa",
+  "agent": "$SSH_AUTH_SOCK",
   "remotePath": "/var/www/html",
   "uploadOnSave": true
 }
@@ -335,4 +344,3 @@ When reporting issues, include:
    - Build output
    - Zed logs
    - Configuration (sanitized)
-
