@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.1.2] - 2026-07-22
 
+### Changed
+
+- Rename the marketplace extension ID to `sftp-file-sync` before initial publication.
+
 ### Fixed
 
 - Reconnect and retry once when an SFTP operation encounters a connection dropped by sleep or another network interruption.

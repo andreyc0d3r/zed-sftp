@@ -1,5 +1,5 @@
-id = "sftp"
-name = "SFTP"
+id = "sftp-file-sync"
+name = "SFTP File Sync"
 version = "0.1.3"
 schema_version = 1
 authors = ["Andrey <andreyc0d3r@gmail.com>"]

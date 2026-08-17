@@ -1,9 +1,9 @@
-# SFTP Extension for Zed
+# SFTP File Sync for Zed
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Zed Extension](https://img.shields.io/badge/Zed-Extension-blue)](https://zed.dev)
 
-This is a Zed extension for SFTP/FTP file synchronization, inspired by the popular [vscode-sftp](https://github.com/Natizyskunk/vscode-sftp) extension.
+SFTP File Sync is a Zed extension for SFTP/FTP file synchronization, inspired by the popular [vscode-sftp](https://github.com/Natizyskunk/vscode-sftp) extension.
 
 ## ✨ Features
 
@@ -45,7 +45,7 @@ The language server is written in Node.js/TypeScript and uses the `ssh2-sftp-cli
 
 1. Open Zed
 2. Open Extensions view: `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Linux/Windows)
-3. Search for "SFTP"
+3. Search for "SFTP File Sync"
 4. Click "Install"
 
 Or install as dev extension:
