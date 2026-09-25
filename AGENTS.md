@@ -247,30 +247,30 @@ The extension is installed in platform-specific directories:
 
 **macOS:**
 ```
-~/Library/Application Support/Zed/extensions/installed/sftp/
+~/Library/Application Support/Zed/extensions/installed/sftp-file-sync-lsp/
 ```
 
 **Linux:**
 ```
-~/.local/share/zed/extensions/installed/sftp/
+~/.local/share/zed/extensions/installed/sftp-file-sync-lsp/
 # Or if XDG_DATA_HOME is set:
-$XDG_DATA_HOME/zed/extensions/installed/sftp/
+$XDG_DATA_HOME/zed/extensions/installed/sftp-file-sync-lsp/
 ```
 
 **Windows:**
 ```
-%USERPROFILE%\AppData\Roaming\Zed\extensions\installed\sftp\
+%USERPROFILE%\AppData\Roaming\Zed\extensions\installed\sftp-file-sync-lsp\
 ```
 
 **Dev Extension (symlinked):**
 The installed path is a symlink to your development directory:
 ```
-[platform-specific path]/sftp/ → /path/to/dev/zed-extensions/sftp/
+[platform-specific path]/sftp-file-sync-lsp/ → /path/to/dev/zed-extensions/sftp/
 ```
 
 **Installed Extension Structure:**
 ```
-sftp/
+sftp-file-sync-lsp/
 ├── extension.wasm
 ├── node_modules/zed-sftp-server/dist/index.js
 └── extension.toml

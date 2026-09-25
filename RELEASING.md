@@ -68,8 +68,9 @@ Publishing and pushing require explicit user approval.
 4. Confirm that `dist-tags.latest` is the new version and that the public shasum matches the package dry run.
 5. Commit and push the source release.
 6. Update the SFTP entry in the `zed-industries/extensions` registry branch or open PR:
-   - Set the `[sftp]` version in `extensions.toml` to the new `extension.toml` version.
-   - Point the `extensions/sftp` submodule to the exact pushed release commit.
+   - Use `[sftp-file-sync-lsp]` in `extensions.toml` and keep its version synchronized with `extension.toml`.
+   - Use `extensions/sftp-file-sync-lsp` as the submodule path in both `extensions.toml` and `.gitmodules`, and point it to the exact pushed release commit.
+   - When applying the pre-publication ID rename, remove the old `sftp-file-sync` registry key and path so only the new ID is submitted.
    - Update the registry PR description so it names the correct extension and npm versions.
 7. Verify the registry PR head, diff, and checks.
 8. Notify affected users only after these checks succeed.

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2026-09-25
+
+### Changed
+
+- Rename the marketplace extension ID from `sftp-file-sync` to `sftp-file-sync-lsp` to identify it as a language-server extension before initial publication. The display name, npm package, configuration paths, and `sftp.*` commands remain unchanged.
+
 ## [0.1.3] - 2026-08-17
 
 ### Added
@@ -42,6 +48,7 @@ All notable changes to this project will be documented in this file.
 - Document manual operations through `editor: toggle code actions` (`Cmd+.` on macOS or `Ctrl+.` on Linux and Windows).
 - Add automated configuration, path handling, command, and stdio LSP regression tests.
 
-[0.1.3]: https://github.com/andreyc0d3r/zed-sftp/compare/6c677af...main
+[0.1.4]: https://github.com/andreyc0d3r/zed-sftp/compare/1cb840c...main
+[0.1.3]: https://github.com/andreyc0d3r/zed-sftp/compare/6c677af...1cb840c
 [0.1.2]: https://github.com/andreyc0d3r/zed-sftp/compare/72d1398...6c677af
 [0.1.1]: https://github.com/andreyc0d3r/zed-sftp/compare/24f7174...72d1398

@@ -43,12 +43,18 @@ The language server is written in Node.js/TypeScript and uses the `ssh2-sftp-cli
 
 ### Install Extension
 
+The marketplace extension ID is `sftp-file-sync-lsp`. The `-lsp` suffix identifies this as a language-server extension, as required by Zed's [publishing prerequisites](https://zed.dev/docs/extensions/publishing/prerequisites#language-server-extensions). The display name remains **SFTP File Sync**.
+
+The registry submission is pending. Until it is merged and published, use the development installation below.
+
+Once published:
+
 1. Open Zed
 2. Open Extensions view: `Cmd+Shift+X` (Mac) or `Ctrl+Shift+X` (Linux/Windows)
 3. Search for "SFTP File Sync"
 4. Click "Install"
 
-Or install as dev extension:
+Install as a dev extension:
 
 ```bash
 # Clone the repository
