@@ -158,7 +158,7 @@ export class ConfigManager {
 		this.workspaceFolder = workspaceFolder;
 	}
 
-	async loadConfig(): Promise<SftpConfig | null> {
+	async loadConfig(selectedProfile?: string): Promise<SftpConfig | null> {
 		// Try .zed/sftp.json first
 		let configPath = path.join(this.workspaceFolder, ".zed", "sftp.json");
 
@@ -185,10 +185,12 @@ export class ConfigManager {
 			}
 
 			// Profiles override base values before validation so connection fields may live in a profile.
-			if (this.config.profiles && this.config.defaultProfile) {
-				const profile = this.config.profiles[this.config.defaultProfile];
+			const profileName = selectedProfile ?? this.config.defaultProfile;
+			if (selectedProfile !== undefined || (this.config.profiles && profileName)) {
+				const profiles = this.config.profiles ?? {};
+				const profile = profileName && Object.prototype.hasOwnProperty.call(profiles, profileName) && profiles[profileName];
 				if (!profile) {
-					throw new Error(`Unknown defaultProfile: ${this.config.defaultProfile}`);
+					throw new Error(`Unknown ${selectedProfile === undefined ? "defaultProfile" : "profile"}: ${profileName}`);
 				}
 				this.config = { ...this.config, ...profile };
 			}

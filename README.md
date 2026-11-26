@@ -154,6 +154,8 @@ An explicit agent socket path is also supported. Windows users can set `"agent":
 }
 ```
 
+With two or more profiles, open code actions (Cmd + . on macOS) in a workspace file and choose **SFTP: Switch from dev to production**. Switching selects the target for subsequent transfers, including upload on save. It does not transfer files or edit your configuration. Restarting the SFTP language server restores `defaultProfile`.
+
 ### Using Context Path
 
 The `context` field allows you to specify a subdirectory within your workspace as the root for SFTP operations. This is useful for projects where only a specific folder should be synced.

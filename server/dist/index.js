@@ -55,11 +55,19 @@ const documents = new node_1.TextDocuments(vscode_languageserver_textdocument_1.
 let workspaceFolder;
 let configManager;
 let sftpClient;
+let selectedProfile;
+// Keep the active connection and path mappings stable for the duration of a transfer.
+let pending = Promise.resolve();
+function inOrder(operation) {
+    const result = pending.then(operation);
+    pending = result.then(() => { }, () => { });
+    return result;
+}
 async function loadSftpClient() {
     if (!configManager) {
         return null;
     }
-    const config = await configManager.loadConfig();
+    const config = await configManager.loadConfig(selectedProfile);
     if (!config) {
         return null;
     }
@@ -121,7 +129,7 @@ connection.onInitialized(async () => {
     }
 });
 // Handle document save
-documents.onDidSave(async (event) => {
+documents.onDidSave(event => inOrder(async () => {
     if (!configManager) {
         return;
     }
@@ -147,34 +155,64 @@ documents.onDidSave(async (event) => {
         connection.console.error(`Failed to upload file: ${error}`);
         connection.window.showErrorMessage(`Failed to upload: ${error}`);
     }
-});
-connection.onCodeAction(async (params) => {
+}));
+connection.onCodeAction((params) => inOrder(async () => {
     if (!configManager) {
         return [];
     }
     try {
-        const loaded = await loadSftpClient();
-        if (!loaded) {
-            return [];
-        }
         const filePath = (0, workspace_1.fileUriToPath)(params.textDocument.uri);
-        if (!configManager.isInContext(filePath) || configManager.shouldIgnore(filePath)) {
+        const relative = path.relative(workspaceFolder, filePath);
+        if (relative === ".." || relative.startsWith(".." + path.sep) || path.isAbsolute(relative))
             return [];
+        const menuConfig = new config_1.ConfigManager(workspaceFolder);
+        let config;
+        try {
+            config = await menuConfig.loadConfig(selectedProfile);
         }
-        return (0, commands_1.createSftpCodeActions)(filePath);
+        catch (error) {
+            if (!selectedProfile)
+                throw error;
+            // A deleted or invalid active profile must never redirect a transfer.
+            const fallback = await menuConfig.loadConfig();
+            if (!fallback)
+                return [];
+            return [{
+                    title: `SFTP: Restore ${fallback.defaultProfile ?? "base configuration"}`,
+                    command: "sftp.switchProfile",
+                    arguments: [null],
+                }];
+        }
+        if (!config)
+            return [];
+        const switches = (0, commands_1.profileActions)(Object.keys(config.profiles ?? {}), selectedProfile ?? config.defaultProfile);
+        if (!menuConfig.isInContext(filePath) || menuConfig.shouldIgnore(filePath))
+            return switches;
+        return [...(0, commands_1.createSftpCodeActions)(filePath), ...switches];
     }
     catch (error) {
         connection.console.warn(`Cannot provide SFTP actions: ${error}`);
         return [];
     }
-});
+}));
 // Handle commands
-connection.onExecuteCommand(async (params) => {
+connection.onExecuteCommand((params) => inOrder(async () => {
     if (!configManager) {
         connection.window.showErrorMessage("SFTP not configured");
         return;
     }
     try {
+        if (params.command === "sftp.switchProfile") {
+            const name = params.arguments?.[0];
+            if (name !== null && (typeof name !== "string" || !name))
+                throw new Error("Expected a profile name");
+            const config = await configManager.loadConfig(name ?? undefined);
+            if (!config)
+                throw new Error("SFTP not configured");
+            selectedProfile = name ?? undefined;
+            connection.window.showInformationMessage(`Active SFTP profile: ${selectedProfile ?? config.defaultProfile ?? "base configuration"}`);
+            return;
+        }
         const loaded = await loadSftpClient();
         if (!loaded) {
             connection.window.showErrorMessage("SFTP not configured");
@@ -218,7 +256,7 @@ connection.onExecuteCommand(async (params) => {
         connection.console.error(`Command failed: ${error}`);
         connection.window.showErrorMessage(`Command failed: ${error}`);
     }
-});
+}));
 // Make the text document manager listen on the connection
 documents.listen(connection);
 // Listen on the connection

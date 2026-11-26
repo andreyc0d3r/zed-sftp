@@ -8,6 +8,7 @@ export const SFTP_COMMANDS = [
 	"sftp.uploadFolder",
 	"sftp.downloadFolder",
 	"sftp.reconnect",
+	"sftp.switchProfile",
 ] as const;
 
 export function createSftpCodeActions(filePath: string): Command[] {
@@ -43,4 +44,14 @@ export function createSftpCodeActions(filePath: string): Command[] {
 			command: "sftp.reconnect",
 		},
 	];
+}
+
+export function profileActions(names: string[], active?: string): Command[] {
+	if (names.length < 2) return [];
+
+	return names.filter(name => name !== active).map(name => ({
+		title: `SFTP: Switch from ${active ?? "base configuration"} to ${name}`,
+		command: "sftp.switchProfile",
+		arguments: [name],
+	}));
 }

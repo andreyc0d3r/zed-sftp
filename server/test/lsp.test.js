@@ -115,6 +115,7 @@ test("LSP initializes from rootUri and returns executable SFTP code actions", as
     "sftp.uploadFolder",
     "sftp.downloadFolder",
     "sftp.reconnect",
+    "sftp.switchProfile",
   ]);
 
   server.send({ method: "initialized", params: {} });
@@ -143,6 +144,25 @@ test("LSP initializes from rootUri and returns executable SFTP code actions", as
       "sftp.reconnect",
     ],
   );
+
+  const configPath = path.join(workspace, ".zed", "sftp.json");
+  const config = JSON.parse(fs.readFileSync(configPath));
+  config.profiles = { dev: { context: "src" }, prod: {} };
+  config.defaultProfile = "dev";
+  const content = JSON.stringify(config);
+  fs.writeFileSync(configPath, content);
+  const menu = () => server.request("textDocument/codeAction", {
+    textDocument: { uri: pathToFileURL(filePath).href },
+    range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } },
+    context: { diagnostics: [] },
+  });
+  const [switchAction] = await menu();
+  assert.equal(switchAction.title, "SFTP: Switch from dev to prod");
+  await server.request("workspace/executeCommand", switchAction);
+  const prodActions = await menu();
+  assert.ok(prodActions.some(action => action.command === "sftp.upload"));
+  assert.equal(prodActions.at(-1).title, "SFTP: Switch from prod to dev");
+  assert.equal(fs.readFileSync(configPath, "utf8"), content);
 
   await server.request("shutdown");
   server.send({ method: "exit" });

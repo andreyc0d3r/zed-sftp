@@ -41,7 +41,7 @@ export declare class ConfigManager {
     private ignorePatterns;
     private contextPath;
     constructor(workspaceFolder: string);
-    loadConfig(): Promise<SftpConfig | null>;
+    loadConfig(selectedProfile?: string): Promise<SftpConfig | null>;
     shouldIgnore(filePath: string): boolean;
     /**
      * Check if a file is within the context path

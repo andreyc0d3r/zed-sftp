@@ -35,6 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SFTP_COMMANDS = void 0;
 exports.createSftpCodeActions = createSftpCodeActions;
+exports.profileActions = profileActions;
 const path = __importStar(require("path"));
 exports.SFTP_COMMANDS = [
     "sftp.upload",
@@ -43,6 +44,7 @@ exports.SFTP_COMMANDS = [
     "sftp.uploadFolder",
     "sftp.downloadFolder",
     "sftp.reconnect",
+    "sftp.switchProfile",
 ];
 function createSftpCodeActions(filePath) {
     const folderPath = path.dirname(filePath);
@@ -76,5 +78,14 @@ function createSftpCodeActions(filePath) {
             command: "sftp.reconnect",
         },
     ];
+}
+function profileActions(names, active) {
+    if (names.length < 2)
+        return [];
+    return names.filter(name => name !== active).map(name => ({
+        title: `SFTP: Switch from ${active ?? "base configuration"} to ${name}`,
+        command: "sftp.switchProfile",
+        arguments: [name],
+    }));
 }
 //# sourceMappingURL=commands.js.map
